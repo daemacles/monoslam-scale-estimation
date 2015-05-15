@@ -2,11 +2,18 @@ cmake_minimum_required (VERSION 2.6)
 set (PROJECT_NAME MyProject)
 project (${PROJECT_NAME})
 
-add_executable (${PROJECT_NAME} src/main.cc) # link libraries located below
+add_executable (${PROJECT_NAME} 
+  src/main.cc
+  src/template_instances.cc
+  ) # link libraries located below
 
 find_package (Eigen3 REQUIRED)
 include_directories(${EIGEN3_INCLUDE_DIR} /usr/include/suitesparse)
 find_package (cpp-matplotlib REQUIRED)
+
+if (NOT CMAKE_BUILD_TYPE)
+  set (CMAKE_BUILD_TYPE Release)
+endif (NOT CMAKE_BUILD_TYPE)
 
 ## Set optional features.  This will show up as a preprocessor variable
 option (USE_GLIBCXX_DEBUG 

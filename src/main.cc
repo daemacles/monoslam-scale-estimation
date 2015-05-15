@@ -1,45 +1,12 @@
-#include <stdint.h>
-#include <cstdlib>
+#include "main.hpp"
 
-#include <iostream>
-#include <memory>
-#include <random>
-#include <string>
-#include <vector>
-
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-register"
-#include <Eigen/Dense>
-#include <Eigen/Core>
-#include <Eigen/StdVector>
-#include <g2o/core/base_vertex.h>
-#include <g2o/core/base_binary_edge.h>
-#include <g2o/core/base_unary_edge.h>
-#include <g2o/core/sparse_optimizer.h>
-#include <g2o/core/block_solver.h>
-#include <g2o/core/solver.h>
-#include <g2o/core/optimization_algorithm_gauss_newton.h>
-#include <g2o/solvers/cholmod/linear_solver_cholmod.h>
-#include <g2o/solvers/pcg/linear_solver_pcg.h>
-#include <g2o/stuff/sampler.h>
-#pragma clang diagnostic pop
-
-#include <pcg_random.hpp>
-
-#include <cpp_mpl.hpp>
+#include "extern_templates.hpp"
 
 using cppmpl::NumpyArray;
-
-typedef Eigen::Matrix<NumpyArray::dtype, Eigen::Dynamic, Eigen::Dynamic,
-        Eigen::RowMajor> Mat;
 
 cppmpl::CppMatplotlib MplConnect (void);
 
 using namespace g2o;
-
-using Eigen::Vector3d;
-typedef Eigen::Matrix<double,6,1> Vector6d;
-typedef Eigen::Matrix<double,6,6> Matrix6d;
 
 class JimGaussianSampler {
 public:
@@ -51,57 +18,10 @@ public:
   double sample(void) {
     return normal_dist_(rng_);
   }
+
 private:
   std::normal_distribution<double> normal_dist_;
   pcg32 rng_;
-};
-
-//===========================================================================
-class VertexPosition3D : public g2o::BaseVertex<3, Eigen::Vector3d> {
-public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    VertexPosition3D() {
-      _estimate.setZero();
-    }
-
-  virtual void setToOriginImpl() {
-    _estimate.setZero();
-  }
-
-  virtual void oplusImpl(const double* update) {
-    _estimate[0] += update[0];
-    _estimate[1] += update[1];
-    _estimate[2] += update[2];
-  }
-
-  virtual bool read(std::istream& /*is*/) { return false; }
-  virtual bool write(std::ostream& /*os*/) const { return false; }
-};
-
-//===========================================================================
-class PositionVelocity3DEdge {
-};
-
-//===========================================================================
-class VertexPositionVelocity3D : public g2o::BaseVertex<6, Vector6d> {
-public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    VertexPositionVelocity3D() {
-      _estimate.setZero();
-    }
-
-  virtual void setToOriginImpl() {
-    _estimate.setZero();
-  }
-
-  virtual void oplusImpl(const double* update) {
-    for (int k = 0; k < 6; k++)
-      _estimate[k] += update[k];
-  }
-
-  virtual bool read(std::istream& /*is*/) { return false; }
-  virtual bool write(std::ostream& /*os*/) const { return false; }
-
 };
 
 //===========================================================================
@@ -144,9 +64,6 @@ public:
       double delta_v = _dt * _measurement[m];
       vjEst[m] += _dt * (vjEst[m+3] + 0.5 * delta_v);
       vjEst[m+3] += delta_v;
-
-//      vjEst[m] = 100 * sampler.sample();
-//      vjEst[m+3] = 100 * sampler.sample();
     }
 
     vj->setEstimate(vjEst);
@@ -224,6 +141,9 @@ public:
       ground_truth_(numberOfTimeSteps_, 6)
 
   {
+    goe_pool_.reserve(numberOfTimeSteps_);
+    toe_pool_.reserve(numberOfTimeSteps_);
+
     // Sample the start location of the target
     state_.setZero();
     for (int m = 0; m < 3; m++) {
@@ -258,6 +178,8 @@ public:
   }
 
   TargetOdometry3DEdge* CreateOdometryEdge () {
+    // Create the odometry constraint between the current and
+    // previous states.
     // Construct the accelerometer measurement
     Vector3d accelerometerMeasurement;
     for (int m = 0; m < 3; m++) {
@@ -265,9 +187,7 @@ public:
         * sampleGaussian();
     }
 
-    // Create the odometry constraint between the current and previous states.
-    TargetOdometry3DEdge* toe =
-      new TargetOdometry3DEdge(dt_, accelerometerNoiseSigma_);
+    auto toe = new TargetOdometry3DEdge(dt_, accelerometerNoiseSigma_);
     toe->setVertex(0, prevStateNode_);
     toe->setVertex(1, stateNode_);
     toe->setMeasurement(accelerometerMeasurement);
@@ -289,7 +209,7 @@ public:
     gps_raw_.row(k_) = gpsMeasurement;
 
     // Add the GPS observation constraint
-    GPSObservationEdgePositionVelocity3D* goe =
+    auto goe =
       new GPSObservationEdgePositionVelocity3D(gpsMeasurement, gpsNoiseSigma_);
     goe->setVertex(0, stateNode_);
 
@@ -315,6 +235,8 @@ public:
   Vector3d processNoise_;
   Mat gps_raw_;
   Mat ground_truth_;
+  std::vector<GPSObservationEdgePositionVelocity3D> goe_pool_;
+  std::vector<TargetOdometry3DEdge> toe_pool_;
 };
 
 
@@ -399,15 +321,6 @@ int main(int argc, char **argv) {
     data.row(i) = v;
   }
 
-//  auto data = MatrixXd(6, 2);
-//  data <<
-//    0, 0,
-//    1, 1,
-//    2, 4,
-//    3, 9,
-//    4, 16,
-//    5, 25;
-//
   auto np_data = NumpyArray("XX", data.data(), data.rows(), data.cols());
   mpl.SendData(np_data);
   mpl.SendData(NumpyArray("II", data_initial.data(), data_initial.rows(),
