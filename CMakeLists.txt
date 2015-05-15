@@ -5,8 +5,7 @@ project (${PROJECT_NAME})
 add_executable (${PROJECT_NAME} src/main.cc) # link libraries located below
 
 find_package (Eigen3 REQUIRED)
-include_directories(${EIGEN3_INCLUDE_DIR})
-find_package (OpenCV REQUIRED)
+include_directories(${EIGEN3_INCLUDE_DIR} /usr/include/suitesparse)
 find_package (cpp-matplotlib REQUIRED)
 
 ## Set optional features.  This will show up as a preprocessor variable
@@ -37,7 +36,16 @@ set (CMAKE_EXPORT_COMPILE_COMMANDS 1)
   #set (EXTRA_LIBS ${EXTRA_LIBS} LibraryName)
 #endif (USE_MY_LIBRARY)
 
-set (LIBS ${cpp-matplotlib_LIBS} ${OpenCV_LIBS})
+set (DEBUG_LIB "")
+set (LIBS 
+  ${cpp-matplotlib_LIBS} 
+  g2o_core${DEBUG_LIB}
+  g2o_solver_pcg${DEBUG_LIB}
+  g2o_solver_cholmod${DEBUG_LIB}
+  g2o_types_slam2d${DEBUG_LIB}
+  g2o_stuff${DEBUG_LIB}
+  cholmod
+  )
 
 target_link_libraries (${PROJECT_NAME} ${EXTRA_LIBS} ${LIBS})
 
