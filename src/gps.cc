@@ -1,4 +1,4 @@
-#include "main.hpp"
+#include "gps.hpp"
 
 #include "extern_templates.hpp"
 
@@ -253,18 +253,29 @@ int main(int argc, char **argv) {
 
   auto mpl = MplConnect();
 
-  // Set up the optimiser and block solver
-  SparseOptimizer optimizer;
-  optimizer.setVerbose(true);
-
   typedef BlockSolver< BlockSolverTraits<6, 6> > BlockSolver;
 
-  BlockSolver::LinearSolverType *linearSolver
-    = new LinearSolverCholmod<BlockSolver::PoseMatrixType>();
-  BlockSolver *blockSolver = new BlockSolver(linearSolver);
-  OptimizationAlgorithm* optimizationAlgorithm =
-    new OptimizationAlgorithmGaussNewton(blockSolver);
-  optimizer.setAlgorithm(optimizationAlgorithm);
+  // Set up the optimiser and block solver
+  // An optimizer                          (SparseOptimizer)
+  //   `-- has an optimization algorithm   (OptimizationAlgorithmGaussNewton)
+  //         `-- has a block solver        (BlockSolver)
+  //              `-- has a linear solver  (LinearSolverCholmod<PoseMatrixT>)
+  SparseOptimizer optimizer;
+  optimizer.setVerbose(true);
+  optimizer.setAlgorithm(
+      new OptimizationAlgorithmGaussNewton(
+          new BlockSolver(
+              new LinearSolverCholmod<BlockSolver::PoseMatrixType>()
+              )
+          )
+      );
+
+//  BlockSolver::LinearSolverType *linearSolver
+//    = new LinearSolverCholmod<BlockSolver::PoseMatrixType>();
+//  BlockSolver *blockSolver = new BlockSolver(linearSolver);
+//  OptimizationAlgorithm* optimizationAlgorithm =
+//    new OptimizationAlgorithmGaussNewton(blockSolver);
+//  optimizer.setAlgorithm(optimizationAlgorithm);
 
   Simulator sim;
 
@@ -296,7 +307,8 @@ int main(int argc, char **argv) {
 
   auto data_initial = Mat(sim.numberOfTimeSteps_, 6);
   for (int i = 0; i != sim.numberOfTimeSteps_; ++i) {
-    Vector6d v = dynamic_cast<VertexPositionVelocity3D*>(optimizer.vertices().find((std::max)(i,0))->second)->estimate();
+    Vector6d v = dynamic_cast<VertexPositionVelocity3D*>
+      (optimizer.vertices().find((std::max)(i,0))->second) ->estimate();
     data_initial.row(i) = v;
   }
 
@@ -352,5 +364,5 @@ cppmpl::CppMatplotlib MplConnect (void) {
   cppmpl::CppMatplotlib mpl{config_path};
   mpl.Connect();
 
-  return std::move(mpl);
+  return mpl;
 }

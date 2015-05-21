@@ -2,11 +2,6 @@ cmake_minimum_required (VERSION 2.6)
 set (PROJECT_NAME MyProject)
 project (${PROJECT_NAME})
 
-add_executable (${PROJECT_NAME} 
-  src/main.cc
-  src/template_instances.cc
-  ) # link libraries located below
-
 find_package (Eigen3 REQUIRED)
 include_directories(${EIGEN3_INCLUDE_DIR} /usr/include/suitesparse)
 find_package (cpp-matplotlib REQUIRED)
@@ -43,7 +38,21 @@ set (CMAKE_EXPORT_COMPILE_COMMANDS 1)
   #set (EXTRA_LIBS ${EXTRA_LIBS} LibraryName)
 #endif (USE_MY_LIBRARY)
 
-set (DEBUG_LIB "")
+string(TOUPPER ${CMAKE_BUILD_TYPE} DEBUG_MODE)
+if (DEBUG_MODE MATCHES "DEBUG")
+  set (PCH_FLAGS -O0)
+  set (DEBUG_LIB "_d")
+elseif (DEBUG_MODE MATCHES "RELEASE")
+  set (PCH_FLAGS -O3)
+  set (DEBUG_LIB "")
+elseif (DEBUG_MODE MATCHES "RELWITHDEBINFO")
+  set (PCH_FLAGS -O2 -g)
+  set (DEBUG_LIB "_d")
+elseif (DEBUG_MODE MATCHES "MINSIZEREL")
+  set (PCH_FLAGS -Os)
+  set (DEBUG_LIB "")
+endif (DEBUG_MODE MATCHES "DEBUG")
+
 set (LIBS 
   ${cpp-matplotlib_LIBS} 
   g2o_core${DEBUG_LIB}
@@ -54,7 +63,30 @@ set (LIBS
   cholmod
   )
 
-target_link_libraries (${PROJECT_NAME} ${EXTRA_LIBS} ${LIBS})
+function(add_pch base)
+  add_custom_command (OUTPUT ${base}.hpp.pch
+    COMMAND ${CMAKE_CXX_COMPILER} 
+    ARGS -x c++-header -std=c++11 -I${EIGEN3_INCLUDE_DIR} ${PCH_FLAGS}
+    -I/usr/include/suitesparse
+    ${CMAKE_HOME_DIRECTORY}/src/${base}.hpp 
+    -o ${base}.hpp.pch 
+    DEPENDS ${CMAKE_HOME_DIRECTORY}/src/${base}.hpp
+    VERBATIM
+    )
+  set_source_files_properties (src/${base}.cc
+    PROPERTIES 
+    COMPILE_FLAGS "-include ${base}.hpp"
+    OBJECT_DEPENDS ${base}.hpp.pch
+    )
+endfunction()
+
+add_pch (gps.hpp)
+
+add_executable (gps
+  src/gps.cc
+  src/template_instances.cc
+  ) 
+target_link_libraries (gps ${LIBS})
 
 # Compile flags
 SET (CMAKE_C_FLAGS                "-Wall -std=c11 -Wextra -Werror")

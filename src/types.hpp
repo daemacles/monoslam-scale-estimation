@@ -1,35 +1,14 @@
 #pragma once
 
-#include <stdint.h>
-#include <cstdlib>
-
 #include <iostream>
-#include <memory>
-#include <random>
-#include <string>
-#include <vector>
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-register"
 #include <Eigen/Dense>
-#include <Eigen/Core>
-#include <Eigen/StdVector>
 #include <g2o/core/base_vertex.h>
-#include <g2o/core/base_binary_edge.h>
-#include <g2o/core/base_unary_edge.h>
-#include <g2o/core/sparse_optimizer.h>
-#include <g2o/core/block_solver.h>
-#include <g2o/core/solver.h>
-#include <g2o/core/optimization_algorithm_gauss_newton.h>
-#include <g2o/solvers/cholmod/linear_solver_cholmod.h>
-#include <g2o/solvers/pcg/linear_solver_pcg.h>
-#include <g2o/stuff/sampler.h>
 #pragma clang diagnostic pop
 
-#include <pcg_random.hpp>
-#include <cpp_mpl.hpp>
-
-typedef Eigen::Matrix<cppmpl::NumpyArray::dtype, Eigen::Dynamic, Eigen::Dynamic,
+typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic,
         Eigen::RowMajor> Mat;
 using Eigen::Vector3d;
 typedef Eigen::Matrix<double, 6, 1> Vector6d;
@@ -76,7 +55,6 @@ public:
 
   virtual bool read(std::istream& /*is*/) { return false; }
   virtual bool write(std::ostream& /*os*/) const { return false; }
-
 };
 
 
