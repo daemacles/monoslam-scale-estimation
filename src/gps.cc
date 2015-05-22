@@ -8,22 +8,6 @@ cppmpl::CppMatplotlib MplConnect (void);
 
 using namespace g2o;
 
-class JimGaussianSampler {
-public:
-  JimGaussianSampler(double mean, double sigma) :
-      normal_dist_(mean, sigma),
-      rng_(pcg_extras::seed_seq_from<std::random_device>())
-  {}
-
-  double sample(void) {
-    return normal_dist_(rng_);
-  }
-
-private:
-  std::normal_distribution<double> normal_dist_;
-  pcg32 rng_;
-};
-
 //===========================================================================
 // The odometry which links pairs of nodes together
 class TargetOdometry3DEdge : public g2o::BaseBinaryEdge<6, Eigen::Vector3d,

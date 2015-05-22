@@ -1,4 +1,8 @@
 cmake_minimum_required (VERSION 2.6)
+
+SET (CMAKE_C_COMPILER             "/usr/bin/clang-3.5")
+SET (CMAKE_CXX_COMPILER             "/usr/bin/clang++-3.5")
+
 set (PROJECT_NAME MyProject)
 project (${PROJECT_NAME})
 
@@ -17,9 +21,6 @@ option (USE_GLIBCXX_DEBUG
 ## USE_MY_LIBRARY in source.
 #option (USE_MY_LIBRARY
 #        "Use the provided library" ON)
-
-SET (CMAKE_C_COMPILER             "/usr/bin/clang-3.5")
-SET (CMAKE_CXX_COMPILER             "/usr/bin/clang++-3.5")
 
 ## Support for Clang's CompilationDatabase system
 set (CMAKE_EXPORT_COMPILE_COMMANDS 1)
@@ -80,13 +81,19 @@ function(add_pch base)
     )
 endfunction()
 
-add_pch (gps.hpp)
-
+add_pch (gps)
 add_executable (gps
   src/gps.cc
+  src/sampler.cc
   src/template_instances.cc
   ) 
 target_link_libraries (gps ${LIBS})
+
+add_executable (scale-estimate
+  src/scale.cc
+  src/sampler.cc
+  )
+target_link_libraries (scale-estimate ${LIBS})
 
 # Compile flags
 SET (CMAKE_C_FLAGS                "-Wall -std=c11 -Wextra -Werror")

@@ -15,28 +15,6 @@ typedef Eigen::Matrix<double, 6, 1> Vector6d;
 typedef Eigen::Matrix<double, 6, 6> Matrix6d;
 
 //===========================================================================
-class VertexPosition3D : public g2o::BaseVertex<3, Eigen::Vector3d> {
-public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    VertexPosition3D() {
-      _estimate.setZero();
-    }
-
-  virtual void setToOriginImpl() {
-    _estimate.setZero();
-  }
-
-  virtual void oplusImpl(const double* update) {
-    _estimate[0] += update[0];
-    _estimate[1] += update[1];
-    _estimate[2] += update[2];
-  }
-
-  virtual bool read(std::istream& /*is*/) { return false; }
-  virtual bool write(std::ostream& /*os*/) const { return false; }
-};
-
-//===========================================================================
 class VertexPositionVelocity3D : public g2o::BaseVertex<6, Vector6d> {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW

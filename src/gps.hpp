@@ -27,5 +27,6 @@
 #include <pcg_random.hpp>
 #include <cpp_mpl.hpp>
 
+#include "sampler.hpp"
 #include "types.hpp"
 
